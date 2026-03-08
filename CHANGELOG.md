@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- Switched YouTube streaming client from ANDROID to IOS to fix 400 errors
+- Added WIP fork warning to README.md
 
 ## [2.12.2] - 2026-03-08
 - Fixed InnertubeProvider to use separate web and android instances for streaming
