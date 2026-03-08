@@ -1,17 +1,28 @@
-import {Innertube} from 'youtubei.js';
+import {Innertube, ClientType} from 'youtubei.js';
 import {injectable} from 'inversify';
 
 @injectable()
 export default class InnertubeProvider {
-  private instance: Innertube | null = null;
+  private webInstance: Innertube | null = null;
+  private androidInstance: Innertube | null = null;
 
   async get(): Promise<Innertube> {
-    if (!this.instance) {
-      this.instance = await Innertube.create({
-        generate_session_locally: true,
+    if (!this.webInstance) {
+      this.webInstance = await Innertube.create({
+        client_type: ClientType.WEB,
       });
     }
 
-    return this.instance;
+    return this.webInstance;
+  }
+
+  async getStreaming(): Promise<Innertube> {
+    if (!this.androidInstance) {
+      this.androidInstance = await Innertube.create({
+        client_type: ClientType.ANDROID,
+      });
+    }
+
+    return this.androidInstance;
   }
 }

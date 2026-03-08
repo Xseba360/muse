@@ -515,7 +515,8 @@ export default class {
 
     if (!ffmpegInput) {
       // Not yet cached, must download
-      const yt = await this.innertubeProvider.get();
+      // Use ANDROID client which provides direct streaming URLs without decipher
+      const yt = await this.innertubeProvider.getStreaming();
       const info = await yt.getBasicInfo(song.url);
 
       if (!info.streaming_data) {
@@ -523,13 +524,11 @@ export default class {
       }
 
       const allFormats = [...info.streaming_data.adaptive_formats, ...info.streaming_data.formats];
-      const audioFormats = allFormats.filter(f => f.has_audio);
+      const audioFormats = allFormats.filter(f => f.has_audio && !f.has_video);
 
-      // Prefer opus in webm container at 48kHz (best for Discord)
+      // Prefer opus at 48kHz (best for Discord)
       let selectedFormat = audioFormats.find(f =>
-        !f.has_video
-        && f.mime_type.includes('audio/webm')
-        && f.mime_type.includes('opus')
+        f.mime_type?.includes('opus')
         && f.audio_sample_rate === 48000,
       );
 
@@ -537,7 +536,8 @@ export default class {
         if (info.basic_info.is_live) {
           // For live streams, look for known live audio itags
           const liveItags = [128, 127, 120, 96, 95, 94, 93];
-          selectedFormat = audioFormats
+          selectedFormat = allFormats
+            .filter(f => f.has_audio)
             .sort((a, b) => b.bitrate - a.bitrate)
             .find(f => liveItags.includes(f.itag));
         }
@@ -545,9 +545,14 @@ export default class {
         if (!selectedFormat) {
           // Fall back to highest bitrate audio-only format
           selectedFormat = audioFormats
-            .filter(f => !f.has_video && f.average_bitrate)
-            .sort((a, b) => (b.average_bitrate ?? 0) - (a.average_bitrate ?? 0))[0]
-            ?? audioFormats[0];
+            .sort((a, b) => (b.bitrate ?? 0) - (a.bitrate ?? 0))[0];
+        }
+
+        // Last resort: any format with audio
+        if (!selectedFormat) {
+          selectedFormat = allFormats
+            .filter(f => f.has_audio)
+            .sort((a, b) => (b.bitrate ?? 0) - (a.bitrate ?? 0))[0];
         }
 
         if (!selectedFormat) {
@@ -555,14 +560,23 @@ export default class {
         }
       }
 
-      debug('Using format', selectedFormat);
+      debug('Using format', selectedFormat.itag, selectedFormat.mime_type);
 
-      ffmpegInput = await selectedFormat.decipher(yt.session.player);
+      // ANDROID client provides direct URLs without needing decipher
+      if (selectedFormat.url) {
+        ffmpegInput = selectedFormat.url;
+      } else {
+        // Fallback to decipher if URL not directly available
+        ffmpegInput = await selectedFormat.decipher(yt.session.player);
+      }
+
       loudnessDb = selectedFormat.loudness_db;
 
       // Don't cache livestreams or long videos
       const MAX_CACHE_LENGTH_SECONDS = 30 * 60; // 30 minutes
-      shouldCacheVideo = !info.basic_info.is_live && (info.basic_info.duration ?? 0) < MAX_CACHE_LENGTH_SECONDS && !options.seek;
+      const isLive = info.basic_info.is_live ?? false;
+      const duration = info.basic_info.duration ?? 0;
+      shouldCacheVideo = !isLive && duration < MAX_CACHE_LENGTH_SECONDS && !options.seek;
 
       debug(shouldCacheVideo ? 'Caching video' : 'Not caching video');
 
