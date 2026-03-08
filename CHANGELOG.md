@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- Migrated from @distube/ytdl-core to youtubei.js for YouTube playback
+- Updated discord.js to 14.25.1
+- Fixed PermissionFlagsBits import for discord.js v14.25 compatibility
+- Added typed interaction options helper to resolve eslint unsafe-any errors
+- Updated repository references and permissions in workflows and documentation
 
 ## [2.11.1] - 2025-04-07
 - Revert Dockerfile to inherit dependencies image from base image
