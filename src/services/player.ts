@@ -10,6 +10,7 @@ import {
   AudioPlayerStatus, AudioResource,
   createAudioPlayer,
   createAudioResource, DiscordGatewayAdapterCreator,
+  entersState,
   joinVoiceChannel,
   StreamType,
   VoiceConnection,
@@ -102,6 +103,15 @@ export default class {
       selfDeaf: false,
       adapterCreator: channel.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator,
     });
+
+    // Wait for the connection to be ready (including DAVE handshake)
+    try {
+      await entersState(this.voiceConnection, VoiceConnectionStatus.Ready, 30_000);
+    } catch {
+      this.voiceConnection.destroy();
+      this.voiceConnection = null;
+      throw new Error('Voice connection failed: DAVE encryption handshake timed out. Please try again.');
+    }
 
     const guildSettings = await getGuildSettings(this.guildId);
 
