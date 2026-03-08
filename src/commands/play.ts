@@ -10,6 +10,7 @@ import getYouTubeAndSpotifySuggestionsFor from '../utils/get-youtube-and-spotify
 import KeyValueCacheProvider from '../services/key-value-cache.js';
 import {ONE_HOUR_IN_SECONDS} from '../utils/constants.js';
 import AddQueryToQueue from '../services/add-query-to-queue.js';
+import typedOptions from '../utils/typed-options.js';
 
 @injectable()
 export default class implements Command {
@@ -53,7 +54,8 @@ export default class implements Command {
   }
 
   public async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    const query = interaction.options.getString('query')!;
+    const options = typedOptions(interaction);
+    const query = options.getString('query')!;
 
     await this.addQueryToQueue.addToQueue({
       interaction,
@@ -66,7 +68,7 @@ export default class implements Command {
   }
 
   public async handleAutocompleteInteraction(interaction: AutocompleteInteraction): Promise<void> {
-    const query = interaction.options.getString('query')?.trim();
+    const query = typedOptions(interaction).getString('query')?.trim();
 
     if (!query || query.length === 0) {
       await interaction.respond([]);

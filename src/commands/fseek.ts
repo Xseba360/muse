@@ -6,6 +6,7 @@ import PlayerManager from '../managers/player.js';
 import Command from './index.js';
 import {prettyTime} from '../utils/time.js';
 import durationStringToSeconds from '../utils/duration-string-to-seconds.js';
+import typedOptions from '../utils/typed-options.js';
 
 @injectable()
 export default class implements Command {
@@ -38,7 +39,7 @@ export default class implements Command {
       throw new Error('can\'t seek in a livestream');
     }
 
-    const seekValue = interaction.options.getString('time');
+    const seekValue = typedOptions(interaction).getString('time');
 
     if (!seekValue) {
       throw new Error('missing seek value');

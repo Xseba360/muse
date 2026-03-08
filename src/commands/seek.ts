@@ -6,6 +6,7 @@ import Command from './index.js';
 import {parseTime, prettyTime} from '../utils/time.js';
 import {SlashCommandBuilder} from '@discordjs/builders';
 import durationStringToSeconds from '../utils/duration-string-to-seconds.js';
+import typedOptions from '../utils/typed-options.js';
 
 @injectable()
 export default class implements Command {
@@ -39,7 +40,7 @@ export default class implements Command {
       throw new Error('can\'t seek in a livestream');
     }
 
-    const time = interaction.options.getString('time')!;
+    const time = typedOptions(interaction).getString('time')!;
 
     let seekTime = 0;
 
