@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed PermissionFlagsBits import for discord.js v14.25 compatibility
 - Added typed interaction options helper to resolve eslint unsafe-any errors
 - Updated repository references and permissions in workflows and documentation
+- Updated @discordjs/voice to 0.19.0 with DAVE end-to-end encryption support (mandatory as of March 1, 2026)
 
 ## [2.11.1] - 2025-04-07
 - Revert Dockerfile to inherit dependencies image from base image
