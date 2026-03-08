@@ -515,7 +515,7 @@ export default class {
 
     if (!ffmpegInput) {
       // Not yet cached, must download
-      // Use ANDROID client which provides direct streaming URLs without decipher
+      // Use IOS client which provides direct streaming URLs without decipher
       const yt = await this.innertubeProvider.getStreaming();
       const info = await yt.getBasicInfo(song.url);
 
@@ -562,7 +562,7 @@ export default class {
 
       debug('Using format', selectedFormat.itag, selectedFormat.mime_type);
 
-      // ANDROID client provides direct URLs without needing decipher
+      // IOS client provides direct URLs without needing decipher
       if (selectedFormat.url) {
         ffmpegInput = selectedFormat.url;
       } else {

@@ -4,7 +4,7 @@ import {injectable} from 'inversify';
 @injectable()
 export default class InnertubeProvider {
   private webInstance: Innertube | null = null;
-  private androidInstance: Innertube | null = null;
+  private iosInstance: Innertube | null = null;
 
   async get(): Promise<Innertube> {
     if (!this.webInstance) {
@@ -17,12 +17,12 @@ export default class InnertubeProvider {
   }
 
   async getStreaming(): Promise<Innertube> {
-    if (!this.androidInstance) {
-      this.androidInstance = await Innertube.create({
-        client_type: ClientType.ANDROID,
+    if (!this.iosInstance) {
+      this.iosInstance = await Innertube.create({
+        client_type: ClientType.IOS,
       });
     }
 
-    return this.androidInstance;
+    return this.iosInstance;
   }
 }
