@@ -178,7 +178,7 @@ export default class AddQueryToQueue {
         return song;
       }
 
-      if (!e.message.includes('404')) {
+      if (!e.message.includes('Not Found') && !('status' in e && e.status === 404)) {
         // Don't log 404 response, it just means that there are no segments for given video
         console.warn(`Could not fetch skip segments for "${song.url}" :`, e);
       }
