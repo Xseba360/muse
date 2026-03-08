@@ -735,22 +735,38 @@ export default class {
         .outputFormat('webm')
         .addOutputOption(['-filter:a', `volume=${options?.volumeAdjustment ?? '1'}`])
         .on('error', error => {
+          debug('ffmpeg error: %s', error.message);
           if (!hasReturnedStreamClosed) {
             reject(error);
           }
         })
         .on('start', command => {
           debug(`Spawned ffmpeg with ${command}`);
+        })
+        .on('end', () => {
+          debug('ffmpeg process finished successfully');
+        })
+        .on('stderr', (stderrLine: string) => {
+          debug('ffmpeg stderr: %s', stderrLine);
         });
 
       stream.pipe(capacitor);
 
       returnedStream.on('close', () => {
+        debug('Returned stream closed');
         if (!options.cache) {
           stream.kill('SIGKILL');
         }
 
         hasReturnedStreamClosed = true;
+      });
+
+      returnedStream.on('end', () => {
+        debug('Returned stream ended');
+      });
+
+      returnedStream.on('error', (error: Error) => {
+        debug('Returned stream error: %s', error.message);
       });
 
       resolve(returnedStream);
