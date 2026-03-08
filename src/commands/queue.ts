@@ -6,7 +6,6 @@ import PlayerManager from '../managers/player.js';
 import Command from './index.js';
 import {buildQueueEmbed} from '../utils/build-embed.js';
 import {getGuildSettings} from '../utils/get-guild-settings.js';
-import typedOptions from '../utils/typed-options.js';
 
 @injectable()
 export default class implements Command {
@@ -34,13 +33,12 @@ export default class implements Command {
     const guildId = interaction.guild!.id;
     const player = this.playerManager.get(guildId);
 
-    const options = typedOptions(interaction);
-    const pageSizeFromOptions = options.getInteger('page-size');
+    const pageSizeFromOptions = interaction.options.getInteger('page-size');
     const pageSize = pageSizeFromOptions ?? (await getGuildSettings(guildId)).defaultQueuePageSize;
 
     const embed = buildQueueEmbed(
       player,
-      options.getInteger('page') ?? 1,
+      interaction.options.getInteger('page') ?? 1,
       pageSize,
     );
 

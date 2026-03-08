@@ -1,11 +1,9 @@
 import {SlashCommandBuilder} from '@discordjs/builders';
-import {ChatInputCommandInteraction, EmbedBuilder} from 'discord.js';
-import {PermissionFlagsBits} from 'discord-api-types/v10';
+import {ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits} from 'discord.js';
 import {injectable} from 'inversify';
 import {prisma} from '../utils/db.js';
 import Command from './index.js';
 import {getGuildSettings} from '../utils/get-guild-settings.js';
-import typedOptions from '../utils/typed-options.js';
 
 @injectable()
 export default class implements Command {
@@ -91,11 +89,9 @@ export default class implements Command {
     // Ensure guild settings exist before trying to update
     await getGuildSettings(interaction.guild!.id);
 
-    const options = typedOptions(interaction);
-
-    switch (options.getSubcommand()) {
+    switch (interaction.options.getSubcommand()) {
       case 'set-playlist-limit': {
-        const limit = options.getInteger('limit')!;
+        const limit: number = interaction.options.getInteger('limit')!;
 
         if (limit < 1) {
           throw new Error('invalid limit');
@@ -116,7 +112,7 @@ export default class implements Command {
       }
 
       case 'set-wait-after-queue-empties': {
-        const delay = options.getInteger('delay')!;
+        const delay = interaction.options.getInteger('delay')!;
 
         await prisma.setting.update({
           where: {
@@ -133,7 +129,7 @@ export default class implements Command {
       }
 
       case 'set-leave-if-no-listeners': {
-        const value = options.getBoolean('value')!;
+        const value = interaction.options.getBoolean('value')!;
 
         await prisma.setting.update({
           where: {
@@ -150,7 +146,7 @@ export default class implements Command {
       }
 
       case 'set-queue-add-response-hidden': {
-        const value = options.getBoolean('value')!;
+        const value = interaction.options.getBoolean('value')!;
 
         await prisma.setting.update({
           where: {
@@ -167,7 +163,7 @@ export default class implements Command {
       }
 
       case 'set-auto-announce-next-song': {
-        const value = options.getBoolean('value')!;
+        const value = interaction.options.getBoolean('value')!;
 
         await prisma.setting.update({
           where: {
@@ -184,7 +180,7 @@ export default class implements Command {
       }
 
       case 'set-default-volume': {
-        const value = options.getInteger('level')!;
+        const value = interaction.options.getInteger('level')!;
 
         await prisma.setting.update({
           where: {
@@ -201,7 +197,7 @@ export default class implements Command {
       }
 
       case 'set-default-queue-page-size': {
-        const value = options.getInteger('page-size')!;
+        const value = interaction.options.getInteger('page-size')!;
 
         await prisma.setting.update({
           where: {
@@ -218,7 +214,7 @@ export default class implements Command {
       }
 
       case 'set-reduce-vol-when-voice': {
-        const value = options.getBoolean('value')!;
+        const value = interaction.options.getBoolean('value')!;
 
         await prisma.setting.update({
           where: {
@@ -235,7 +231,7 @@ export default class implements Command {
       }
 
       case 'set-reduce-vol-when-voice-target': {
-        const value = options.getInteger('volume')!;
+        const value = interaction.options.getInteger('volume')!;
 
         await prisma.setting.update({
           where: {

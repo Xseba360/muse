@@ -4,7 +4,6 @@ import {inject, injectable} from 'inversify';
 import PlayerManager from '../managers/player.js';
 import Command from './index.js';
 import {SlashCommandBuilder} from '@discordjs/builders';
-import typedOptions from '../utils/typed-options.js';
 
 @injectable()
 export default class implements Command {
@@ -36,8 +35,8 @@ export default class implements Command {
       throw new Error('nothing is playing');
     }
 
-    const level = typedOptions(interaction).getInteger('level') ?? 100;
+    const level = interaction.options.getInteger('level') ?? 100;
     player.setVolume(level);
-    await interaction.reply(`Set volume to ${String(level)}%`);
+    await interaction.reply(`Set volume to ${level}%`);
   }
 }

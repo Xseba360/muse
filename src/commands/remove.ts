@@ -4,7 +4,6 @@ import {TYPES} from '../types.js';
 import PlayerManager from '../managers/player.js';
 import Command from './index.js';
 import {SlashCommandBuilder} from '@discordjs/builders';
-import typedOptions from '../utils/typed-options.js';
 
 @injectable()
 export default class implements Command {
@@ -30,9 +29,8 @@ export default class implements Command {
   public async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const player = this.playerManager.get(interaction.guild!.id);
 
-    const options = typedOptions(interaction);
-    const position = options.getInteger('position') ?? 1;
-    const range = options.getInteger('range') ?? 1;
+    const position = interaction.options.getInteger('position') ?? 1;
+    const range = interaction.options.getInteger('range') ?? 1;
 
     if (position < 1) {
       throw new Error('position must be at least 1');

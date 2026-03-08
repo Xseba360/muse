@@ -5,7 +5,6 @@ import PlayerManager from '../managers/player.js';
 import Command from './index.js';
 import {SlashCommandBuilder} from '@discordjs/builders';
 import {buildPlayingMessageEmbed} from '../utils/build-embed.js';
-import typedOptions from '../utils/typed-options.js';
 
 @injectable()
 export default class implements Command {
@@ -26,7 +25,7 @@ export default class implements Command {
   }
 
   public async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    const numToSkip = typedOptions(interaction).getInteger('number') ?? 1;
+    const numToSkip = interaction.options.getInteger('number') ?? 1;
 
     if (numToSkip < 1) {
       throw new Error('invalid number of songs to skip');

@@ -6,7 +6,6 @@ import AddQueryToQueue from '../services/add-query-to-queue.js';
 import {TYPES} from '../types.js';
 import {prisma} from '../utils/db.js';
 import {Pagination} from 'pagination.djs';
-import typedOptions from '../utils/typed-options.js';
 
 @injectable()
 export default class implements Command {
@@ -84,9 +83,8 @@ export default class implements Command {
   }
 
   async handleAutocompleteInteraction(interaction: AutocompleteInteraction) {
-    const options = typedOptions(interaction);
-    const subcommand = options.getSubcommand();
-    const query = options.getString('name')!.trim();
+    const subcommand = interaction.options.getSubcommand();
+    const query = interaction.options.getString('name')!.trim();
 
     const favorites = await prisma.favoriteQuery.findMany({
       where: {
@@ -110,8 +108,7 @@ export default class implements Command {
   }
 
   private async use(interaction: ChatInputCommandInteraction) {
-    const options = typedOptions(interaction);
-    const name = options.getString('name')!.trim();
+    const name = interaction.options.getString('name')!.trim();
 
     const favorite = await prisma.favoriteQuery.findFirst({
       where: {
@@ -127,10 +124,10 @@ export default class implements Command {
     await this.addQueryToQueue.addToQueue({
       interaction,
       query: favorite.query,
-      shuffleAdditions: options.getBoolean('shuffle') ?? false,
-      addToFrontOfQueue: options.getBoolean('immediate') ?? false,
-      shouldSplitChapters: options.getBoolean('split') ?? false,
-      skipCurrentTrack: options.getBoolean('skip') ?? false,
+      shuffleAdditions: interaction.options.getBoolean('shuffle') ?? false,
+      addToFrontOfQueue: interaction.options.getBoolean('immediate') ?? false,
+      shouldSplitChapters: interaction.options.getBoolean('split') ?? false,
+      skipCurrentTrack: interaction.options.getBoolean('skip') ?? false,
     });
   }
 
@@ -165,9 +162,8 @@ export default class implements Command {
   }
 
   private async create(interaction: ChatInputCommandInteraction) {
-    const options = typedOptions(interaction);
-    const name = options.getString('name')!.trim();
-    const query = options.getString('query')!.trim();
+    const name = interaction.options.getString('name')!.trim();
+    const query = interaction.options.getString('query')!.trim();
 
     const existingFavorite = await prisma.favoriteQuery.findFirst({where: {
       guildId: interaction.guild!.id,
@@ -191,8 +187,7 @@ export default class implements Command {
   }
 
   private async remove(interaction: ChatInputCommandInteraction) {
-    const options = typedOptions(interaction);
-    const name = options.getString('name')!.trim();
+    const name = interaction.options.getString('name')!.trim();
 
     const favorite = await prisma.favoriteQuery.findFirst({where: {
       name,
