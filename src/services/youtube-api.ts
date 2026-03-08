@@ -1,12 +1,12 @@
 import {inject, injectable} from 'inversify';
 import {toSeconds, parse} from 'iso8601-duration';
 import got, {Got} from 'got';
-import ytsr, {Video} from '@distube/ytsr';
 import PQueue from 'p-queue';
 import {SongMetadata, QueuedPlaylist, MediaSource} from './player.js';
 import {TYPES} from '../types.js';
 import Config from './config.js';
 import KeyValueCacheProvider from './key-value-cache.js';
+import InnertubeProvider from './innertube.js';
 import {ONE_HOUR_IN_SECONDS, ONE_MINUTE_IN_SECONDS} from '../utils/constants.js';
 import {parseTime} from '../utils/time.js';
 import getYouTubeID from 'get-youtube-id';
@@ -56,13 +56,15 @@ interface PlaylistItem {
 export default class {
   private readonly youtubeKey: string;
   private readonly cache: KeyValueCacheProvider;
-  private readonly ytsrQueue: PQueue;
+  private readonly searchQueue: PQueue;
+  private readonly innertubeProvider: InnertubeProvider;
   private readonly got: Got;
 
-  constructor(@inject(TYPES.Config) config: Config, @inject(TYPES.KeyValueCache) cache: KeyValueCacheProvider) {
+  constructor(@inject(TYPES.Config) config: Config, @inject(TYPES.KeyValueCache) cache: KeyValueCacheProvider, @inject(TYPES.Services.Innertube) innertubeProvider: InnertubeProvider) {
     this.youtubeKey = config.YOUTUBE_API_KEY;
     this.cache = cache;
-    this.ytsrQueue = new PQueue({concurrency: 4});
+    this.innertubeProvider = innertubeProvider;
+    this.searchQueue = new PQueue({concurrency: 4});
 
     this.got = got.extend({
       prefixUrl: 'https://www.googleapis.com/youtube/v3/',
@@ -74,35 +76,31 @@ export default class {
   }
 
   async search(query: string, shouldSplitChapters: boolean): Promise<SongMetadata[]> {
-    const result = await this.ytsrQueue.add<ytsr.VideoResult>(async () => this.cache.wrap(
-      ytsr,
+    const firstVideoId = await this.searchQueue.add(async () => this.cache.wrap(
+      async (q: string) => {
+        const yt = await this.innertubeProvider.get();
+        const searchResults = await yt.search(q, {type: 'video'});
+
+        for (const item of searchResults.results ?? []) {
+          if (item.type === 'Video') {
+            return (item as unknown as {id: string}).id;
+          }
+        }
+
+        return null;
+      },
       query,
       {
-        limit: 10,
-      },
-      {
+        key: `yt-search:${query}`,
         expiresIn: ONE_HOUR_IN_SECONDS,
       },
     ));
 
-    if (result === undefined) {
+    if (!firstVideoId) {
       return [];
     }
 
-    let firstVideo: Video | undefined;
-
-    for (const item of result.items) {
-      if (item.type === 'video') {
-        firstVideo = item;
-        break;
-      }
-    }
-
-    if (!firstVideo) {
-      return [];
-    }
-
-    return this.getVideo(firstVideo.url, shouldSplitChapters);
+    return this.getVideo(`https://www.youtube.com/watch?v=${firstVideoId}`, shouldSplitChapters);
   }
 
   async getVideo(url: string, shouldSplitChapters: boolean): Promise<SongMetadata[]> {

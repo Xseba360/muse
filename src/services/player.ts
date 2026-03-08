@@ -1,7 +1,6 @@
 import {VoiceChannel, Snowflake} from 'discord.js';
 import {Readable} from 'stream';
 import hasha from 'hasha';
-import ytdl, {videoFormat} from '@distube/ytdl-core';
 import {WriteStream} from 'fs-capacitor';
 import ffmpeg from 'fluent-ffmpeg';
 import shuffle from 'array-shuffle';
@@ -17,6 +16,7 @@ import {
   VoiceConnectionStatus,
 } from '@discordjs/voice';
 import FileCacheProvider from './file-cache.js';
+import InnertubeProvider from './innertube.js';
 import debug from '../utils/debug.js';
 import {getGuildSettings} from '../utils/get-guild-settings.js';
 import {buildPlayingMessageEmbed} from '../utils/build-embed.js';
@@ -58,8 +58,6 @@ export interface PlayerEvents {
   statusChange: (oldStatus: STATUS, newStatus: STATUS) => void;
 }
 
-type YTDLVideoFormat = videoFormat & {loudnessDb?: number};
-
 export const DEFAULT_VOLUME = 100;
 
 export default class {
@@ -81,12 +79,14 @@ export default class {
 
   private positionInSeconds = 0;
   private readonly fileCache: FileCacheProvider;
+  private readonly innertubeProvider: InnertubeProvider;
   private disconnectTimer: NodeJS.Timeout | null = null;
 
   private readonly channelToSpeakingUsers: Map<string, Set<string>> = new Map();
 
-  constructor(fileCache: FileCacheProvider, guildId: string) {
+  constructor(fileCache: FileCacheProvider, innertubeProvider: InnertubeProvider, guildId: string) {
     this.fileCache = fileCache;
+    this.innertubeProvider = innertubeProvider;
     this.guildId = guildId;
   }
 
@@ -509,59 +509,60 @@ export default class {
     const ffmpegInputOptions: string[] = [];
     let shouldCacheVideo = false;
 
-    let format: YTDLVideoFormat | undefined;
+    let loudnessDb: number | undefined;
 
     ffmpegInput = await this.fileCache.getPathFor(this.getHashForCache(song.url));
 
     if (!ffmpegInput) {
       // Not yet cached, must download
-      const info = await ytdl.getInfo(song.url);
+      const yt = await this.innertubeProvider.get();
+      const info = await yt.getBasicInfo(song.url);
 
-      const formats = info.formats as YTDLVideoFormat[];
+      if (!info.streaming_data) {
+        throw new Error('No streaming data available.');
+      }
 
-      const filter = (format: ytdl.videoFormat): boolean => format.codecs === 'opus' && format.container === 'webm' && format.audioSampleRate !== undefined && parseInt(format.audioSampleRate, 10) === 48000;
+      const allFormats = [...info.streaming_data.adaptive_formats, ...info.streaming_data.formats];
+      const audioFormats = allFormats.filter(f => f.has_audio);
 
-      format = formats.find(filter);
+      // Prefer opus in webm container at 48kHz (best for Discord)
+      let selectedFormat = audioFormats.find(f =>
+        !f.has_video
+        && f.mime_type.includes('audio/webm')
+        && f.mime_type.includes('opus')
+        && f.audio_sample_rate === 48000,
+      );
 
-      const nextBestFormat = (formats: ytdl.videoFormat[]): ytdl.videoFormat | undefined => {
-        if (formats.length < 1) {
-          return undefined;
+      if (!selectedFormat) {
+        if (info.basic_info.is_live) {
+          // For live streams, look for known live audio itags
+          const liveItags = [128, 127, 120, 96, 95, 94, 93];
+          selectedFormat = audioFormats
+            .sort((a, b) => b.bitrate - a.bitrate)
+            .find(f => liveItags.includes(f.itag));
         }
 
-        if (formats[0].isLive) {
-          formats = formats.sort((a, b) => (b as unknown as {audioBitrate: number}).audioBitrate - (a as unknown as {audioBitrate: number}).audioBitrate); // Bad typings
-
-          return formats.find(format => [128, 127, 120, 96, 95, 94, 93].includes(parseInt(format.itag as unknown as string, 10))); // Bad typings
+        if (!selectedFormat) {
+          // Fall back to highest bitrate audio-only format
+          selectedFormat = audioFormats
+            .filter(f => !f.has_video && f.average_bitrate)
+            .sort((a, b) => (b.average_bitrate ?? 0) - (a.average_bitrate ?? 0))[0]
+            ?? audioFormats[0];
         }
 
-        formats = formats
-          .filter(format => format.averageBitrate)
-          .sort((a, b) => {
-            if (a && b) {
-              return b.averageBitrate! - a.averageBitrate!;
-            }
-
-            return 0;
-          });
-        return formats.find(format => !format.bitrate) ?? formats[0];
-      };
-
-      if (!format) {
-        format = nextBestFormat(info.formats);
-
-        if (!format) {
-          // If still no format is found, throw
+        if (!selectedFormat) {
           throw new Error('Can\'t find suitable format.');
         }
       }
 
-      debug('Using format', format);
+      debug('Using format', selectedFormat);
 
-      ffmpegInput = format.url;
+      ffmpegInput = await selectedFormat.decipher(yt.session.player);
+      loudnessDb = selectedFormat.loudness_db;
 
       // Don't cache livestreams or long videos
       const MAX_CACHE_LENGTH_SECONDS = 30 * 60; // 30 minutes
-      shouldCacheVideo = !info.player_response.videoDetails.isLiveContent && parseInt(info.videoDetails.lengthSeconds, 10) < MAX_CACHE_LENGTH_SECONDS && !options.seek;
+      shouldCacheVideo = !info.basic_info.is_live && (info.basic_info.duration ?? 0) < MAX_CACHE_LENGTH_SECONDS && !options.seek;
 
       debug(shouldCacheVideo ? 'Caching video' : 'Not caching video');
 
@@ -588,7 +589,7 @@ export default class {
       cacheKey: song.url,
       ffmpegInputOptions,
       cache: shouldCacheVideo,
-      volumeAdjustment: format?.loudnessDb ? `${-format.loudnessDb}dB` : undefined,
+      volumeAdjustment: loudnessDb ? `${-loudnessDb}dB` : undefined,
     });
   }
 
