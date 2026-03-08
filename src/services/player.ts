@@ -92,6 +92,8 @@ export default class {
   }
 
   async connect(channel: VoiceChannel): Promise<void> {
+    debug('Connecting to voice channel %s in guild %s', channel.id, channel.guild.id);
+
     // Always get freshest default volume setting value
     const settings = await getGuildSettings(this.guildId);
     const {defaultVolume = DEFAULT_VOLUME} = settings;
@@ -103,15 +105,6 @@ export default class {
       selfDeaf: false,
       adapterCreator: channel.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator,
     });
-
-    // Wait for the connection to be ready (including DAVE handshake)
-    try {
-      await entersState(this.voiceConnection, VoiceConnectionStatus.Ready, 30_000);
-    } catch {
-      this.voiceConnection.destroy();
-      this.voiceConnection = null;
-      throw new Error('Voice connection failed: DAVE encryption handshake timed out. Please try again.');
-    }
 
     const guildSettings = await getGuildSettings(this.guildId);
 
@@ -129,12 +122,22 @@ export default class {
       oldNetworking?.off('stateChange', networkStateChangeHandler);
       newNetworking?.on('stateChange', networkStateChangeHandler);
       /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
-
-      this.currentChannel = channel;
-      if (newState.status === VoiceConnectionStatus.Ready) {
-        this.registerVoiceActivityListener(guildSettings);
-      }
     });
+
+    // Wait for the connection to be ready (including DAVE handshake)
+    debug('Waiting for voice connection to reach Ready state (DAVE handshake)...');
+    try {
+      await entersState(this.voiceConnection, VoiceConnectionStatus.Ready, 30_000);
+      debug('Voice connection ready');
+    } catch {
+      debug('Voice connection failed to reach Ready state within 30s');
+      this.voiceConnection.destroy();
+      this.voiceConnection = null;
+      throw new Error('Voice connection failed: DAVE encryption handshake timed out. Please try again.');
+    }
+
+    this.currentChannel = channel;
+    this.registerVoiceActivityListener(guildSettings);
   }
 
   disconnect(): void {
@@ -211,6 +214,8 @@ export default class {
       throw new Error('Queue empty.');
     }
 
+    debug('Playing: %s (source: %s, url: %s)', currentSong.title, currentSong.source === MediaSource.Youtube ? 'YouTube' : 'HLS', currentSong.url);
+
     // Cancel any pending idle disconnection
     if (this.disconnectTimer) {
       clearInterval(this.disconnectTimer);
@@ -240,15 +245,28 @@ export default class {
         to = currentSong.length + currentSong.offset;
       }
 
+      debug('Getting stream for %s...', currentSong.title);
       const stream = await this.getStream(currentSong, {seek: positionSeconds, to});
+      debug('Got stream, creating audio player');
       this.audioPlayer = createAudioPlayer({
         behaviors: {
           // Needs to be somewhat high for livestreams
           maxMissedFrames: 50,
         },
       });
+
+      this.audioPlayer.on('error', error => {
+        debug('Audio player error: %s', error.message);
+      });
+
+      this.audioPlayer.on('stateChange', (oldState, newState) => {
+        debug('Audio player state change: %s -> %s', oldState.status, newState.status);
+      });
+
       this.voiceConnection.subscribe(this.audioPlayer);
+      debug('Subscribed audio player to voice connection');
       this.playAudioPlayerResource(this.createAudioStream(stream));
+      debug('Audio resource playing');
 
       this.attachListeners();
 
@@ -263,6 +281,8 @@ export default class {
         this.lastSongURL = currentSong.url;
       }
     } catch (error: unknown) {
+      debug('Error during playback of %s: %O', currentSong.title, error);
+
       await this.forward(1);
 
       if ((error as {statusCode: number}).statusCode === 410 && currentSong) {
@@ -524,6 +544,7 @@ export default class {
     ffmpegInput = await this.fileCache.getPathFor(this.getHashForCache(song.url));
 
     if (!ffmpegInput) {
+      debug('Not cached, fetching from YouTube (video ID: %s)', song.url);
       // Not yet cached, must download
       // Use IOS client which provides direct streaming URLs without decipher
       const yt = await this.innertubeProvider.getStreaming();
@@ -574,8 +595,10 @@ export default class {
 
       // IOS client provides direct URLs without needing decipher
       if (selectedFormat.url) {
+        debug('Got direct URL from IOS client');
         ffmpegInput = selectedFormat.url;
       } else {
+        debug('No direct URL, falling back to decipher');
         // Fallback to decipher if URL not directly available
         ffmpegInput = await selectedFormat.decipher(yt.session.player);
       }
@@ -656,10 +679,13 @@ export default class {
   }
 
   private onVoiceConnectionDisconnect(): void {
+    debug('Voice connection disconnected');
     this.disconnect();
   }
 
   private async onAudioPlayerIdle(_oldState: AudioPlayerState, newState: AudioPlayerState): Promise<void> {
+    debug('Audio player idle (status: %s, loopSong: %s, loopQueue: %s)', this.status, this.loopCurrentSong, this.loopCurrentQueue);
+
     // Automatically advance queued song at end
     if (this.loopCurrentSong && newState.status === AudioPlayerStatus.Idle && this.status === STATUS.PLAYING) {
       await this.seek(0);

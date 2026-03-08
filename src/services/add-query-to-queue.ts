@@ -12,6 +12,7 @@ import {SponsorBlock} from 'sponsorblock-api';
 import Config from './config.js';
 import KeyValueCacheProvider from './key-value-cache.js';
 import {ONE_HOUR_IN_SECONDS} from '../utils/constants.js';
+import debug from '../utils/debug.js';
 
 @injectable()
 export default class AddQueryToQueue {
@@ -58,7 +59,9 @@ export default class AddQueryToQueue {
 
     await interaction.deferReply({flags: queueAddResponseEphemeral ? MessageFlags.Ephemeral : undefined});
 
+    debug('Fetching songs for query: %s', query);
     let [newSongs, extraMsg] = await this.getSongs.getSongs(query, playlistLimit, shouldSplitChapters);
+    debug('Found %d song(s)', newSongs.length);
 
     if (newSongs.length === 0) {
       throw new Error('no songs found');
@@ -85,10 +88,13 @@ export default class AddQueryToQueue {
     let statusMsg = '';
 
     if (player.voiceConnection === null) {
+      debug('No voice connection, connecting to channel %s', targetVoiceChannel.id);
       await player.connect(targetVoiceChannel);
+      debug('Connected, starting playback');
 
       // Resume / start playback
       await player.play();
+      debug('Playback started (status: %s)', player.status);
 
       if (wasPlayingSong) {
         statusMsg = 'resuming playback';
@@ -98,8 +104,12 @@ export default class AddQueryToQueue {
         embeds: [buildPlayingMessageEmbed(player)],
       });
     } else if (player.status === STATUS.IDLE) {
+      debug('Player idle, starting playback');
       // Player is idle, start playback instead
       await player.play();
+      debug('Playback started from idle (status: %s)', player.status);
+    } else {
+      debug('Already connected and playing/paused (status: %s), song queued', player.status);
     }
 
     if (skipCurrentTrack) {
