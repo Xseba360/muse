@@ -5,6 +5,8 @@
 
 ------
 
+> ⚠️ **This is a work-in-progress fork.** Dependencies are being updated and the codebase is being brought up to date with the latest versions of discord.js, youtubei.js, and other libraries. Expect breaking changes and rough edges. Use at your own risk.
+
 Muse is a **highly-opinionated midwestern self-hosted** Discord music bot **that doesn't suck**. It's made for small to medium-sized Discord servers/guilds (think about a group the size of you, your friends, and your friend's friends).
 
 ![Hero graphic](.github/hero.png)
