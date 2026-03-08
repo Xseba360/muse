@@ -375,7 +375,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
-[unreleased]: https://github.com/Xseba360/muse/compare/2.12.0...HEAD
+[unreleased]: https://github.com/Xseba360/muse/compare/v2.12.0...HEAD
 [2.11.1]: https://github.com/museofficial/muse/compare/v2.11.0...v2.11.1
 [2.11.0]: https://github.com/museofficial/muse/compare/v2.10.1...v2.11.0
 [2.10.1]: https://github.com/museofficial/muse/compare/v2.10.0...v2.10.1
@@ -450,4 +450,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.1.1]: https://github.com/codetheweb/muse/releases/tag/v0.1.1
 [0.1.0]: https://github.com/codetheweb/muse/releases/tag/v0.1.0
 
-[2.12.0]: https://github.com/Xseba360/muse/releases/tag/2.12.0
+[2.12.0]: https://github.com/Xseba360/muse/releases/tag/v2.12.0
