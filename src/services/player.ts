@@ -4,6 +4,7 @@ import hasha from 'hasha';
 import {WriteStream} from 'fs-capacitor';
 import ffmpeg from 'fluent-ffmpeg';
 import shuffle from 'array-shuffle';
+import {Utils} from 'youtubei.js';
 import {
   AudioPlayer,
   AudioPlayerState,
@@ -535,93 +536,53 @@ export default class {
       return this.createReadStream({url: song.url, cacheKey: song.url});
     }
 
-    let ffmpegInput: string | null;
     const ffmpegInputOptions: string[] = [];
     let shouldCacheVideo = false;
 
-    let loudnessDb: number | undefined;
+    const cachedPath = await this.fileCache.getPathFor(this.getHashForCache(song.url));
 
-    ffmpegInput = await this.fileCache.getPathFor(this.getHashForCache(song.url));
+    if (cachedPath) {
+      debug('Using cached file for %s', song.url);
 
-    if (!ffmpegInput) {
-      debug('Not cached, fetching from YouTube (video ID: %s)', song.url);
-      // Not yet cached, must download
-      // Use IOS client which provides direct streaming URLs without decipher
-      const yt = await this.innertubeProvider.getStreaming();
-      const info = await yt.getBasicInfo(song.url);
-
-      if (!info.streaming_data) {
-        throw new Error('No streaming data available.');
+      if (options.seek) {
+        ffmpegInputOptions.push('-ss', options.seek.toString());
       }
 
-      const allFormats = [...info.streaming_data.adaptive_formats, ...info.streaming_data.formats];
-      const audioFormats = allFormats.filter(f => f.has_audio && !f.has_video);
-
-      // Prefer opus at 48kHz (best for Discord)
-      let selectedFormat = audioFormats.find(f =>
-        f.mime_type?.includes('opus')
-        && f.audio_sample_rate === 48000,
-      );
-
-      if (!selectedFormat) {
-        if (info.basic_info.is_live) {
-          // For live streams, look for known live audio itags
-          const liveItags = [128, 127, 120, 96, 95, 94, 93];
-          selectedFormat = allFormats
-            .filter(f => f.has_audio)
-            .sort((a, b) => b.bitrate - a.bitrate)
-            .find(f => liveItags.includes(f.itag));
-        }
-
-        if (!selectedFormat) {
-          // Fall back to highest bitrate audio-only format
-          selectedFormat = audioFormats
-            .sort((a, b) => (b.bitrate ?? 0) - (a.bitrate ?? 0))[0];
-        }
-
-        // Last resort: any format with audio
-        if (!selectedFormat) {
-          selectedFormat = allFormats
-            .filter(f => f.has_audio)
-            .sort((a, b) => (b.bitrate ?? 0) - (a.bitrate ?? 0))[0];
-        }
-
-        if (!selectedFormat) {
-          throw new Error('Can\'t find suitable format.');
-        }
+      if (options.to) {
+        ffmpegInputOptions.push('-to', options.to.toString());
       }
 
-      debug('Using format', selectedFormat.itag, selectedFormat.mime_type);
-
-      // IOS client provides direct URLs without needing decipher
-      if (selectedFormat.url) {
-        debug('Got direct URL from IOS client');
-        ffmpegInput = selectedFormat.url;
-      } else {
-        debug('No direct URL, falling back to decipher');
-        // Fallback to decipher if URL not directly available
-        ffmpegInput = await selectedFormat.decipher(yt.session.player);
-      }
-
-      loudnessDb = selectedFormat.loudness_db;
-
-      // Don't cache livestreams or long videos
-      const MAX_CACHE_LENGTH_SECONDS = 30 * 60; // 30 minutes
-      const isLive = info.basic_info.is_live ?? false;
-      const duration = info.basic_info.duration ?? 0;
-      shouldCacheVideo = !isLive && duration < MAX_CACHE_LENGTH_SECONDS && !options.seek;
-
-      debug(shouldCacheVideo ? 'Caching video' : 'Not caching video');
-
-      ffmpegInputOptions.push(...[
-        '-reconnect',
-        '1',
-        '-reconnect_streamed',
-        '1',
-        '-reconnect_delay_max',
-        '5',
-      ]);
+      return this.createReadStream({
+        url: cachedPath,
+        cacheKey: song.url,
+        ffmpegInputOptions,
+      });
     }
+
+    debug('Not cached, fetching from YouTube via yt.download (video ID: %s)', song.url);
+
+    const yt = await this.innertubeProvider.getStreaming();
+    const info = await yt.getBasicInfo(song.url);
+    const isLive = info.basic_info.is_live ?? false;
+    const duration = info.basic_info.duration ?? 0;
+
+    // Don't cache livestreams or long videos
+    const MAX_CACHE_LENGTH_SECONDS = 30 * 60; // 30 minutes
+    shouldCacheVideo = !isLive && duration < MAX_CACHE_LENGTH_SECONDS && !options.seek;
+
+    debug(shouldCacheVideo ? 'Caching video' : 'Not caching video');
+
+    // Use yt.download() which handles auth, headers, and format selection internally
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const downloadStream = await yt.download(song.url, {
+      type: 'audio',
+      quality: 'best',
+      client: 'IOS',
+    });
+
+    debug('Got download stream from yt.download');
+
+    const ytStream = Readable.from(Utils.streamToIterable(downloadStream));
 
     if (options.seek) {
       ffmpegInputOptions.push('-ss', options.seek.toString());
@@ -632,11 +593,10 @@ export default class {
     }
 
     return this.createReadStream({
-      url: ffmpegInput,
+      input: ytStream,
       cacheKey: song.url,
       ffmpegInputOptions,
       cache: shouldCacheVideo,
-      volumeAdjustment: loudnessDb ? `${-loudnessDb}dB` : undefined,
     });
   }
 
@@ -716,7 +676,7 @@ export default class {
     }
   }
 
-  private async createReadStream(options: {url: string; cacheKey: string; ffmpegInputOptions?: string[]; cache?: boolean; volumeAdjustment?: string}): Promise<Readable> {
+  private async createReadStream(options: {url?: string; input?: Readable; cacheKey: string; ffmpegInputOptions?: string[]; cache?: boolean; volumeAdjustment?: string}): Promise<Readable> {
     return new Promise((resolve, reject) => {
       const capacitor = new WriteStream();
 
@@ -728,7 +688,8 @@ export default class {
       const returnedStream = capacitor.createReadStream();
       let hasReturnedStreamClosed = false;
 
-      const stream = ffmpeg(options.url)
+      const ffmpegInput = options.input ?? options.url!;
+      const stream = ffmpeg(ffmpegInput)
         .inputOptions(options?.ffmpegInputOptions ?? ['-re'])
         .noVideo()
         .audioCodec('libopus')
