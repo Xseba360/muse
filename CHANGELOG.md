@@ -5,12 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- Updated TypeScript from 4.x to 5.x to fix build errors with discord.js 14.25.1 typings
+- Reverted unnecessary discord.js compatibility workarounds (typed options helper, PermissionFlagsBits import change)
+- Updated GitHub Actions to use latest versions of checkout and setup-node
 
 ## [2.12.0] - 2026-03-08
 - Migrated from @distube/ytdl-core to youtubei.js for YouTube playback
 - Updated discord.js to 14.25.1
-- Fixed PermissionFlagsBits import for discord.js v14.25 compatibility
-- Added typed interaction options helper to resolve eslint unsafe-any errors
 - Updated repository references and permissions in workflows and documentation
 - Updated @discordjs/voice to 0.19.0 with DAVE end-to-end encryption support (mandatory as of March 1, 2026)
 
