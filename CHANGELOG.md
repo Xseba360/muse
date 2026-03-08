@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.12.1] - 2026-03-08
 - Updated TypeScript from 4.x to 5.x to fix build errors with discord.js 14.25.1 typings
 - Reverted unnecessary discord.js compatibility workarounds (typed options helper, PermissionFlagsBits import change)
 - Updated GitHub Actions to use latest versions of checkout and setup-node
@@ -376,7 +378,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
-[unreleased]: https://github.com/Xseba360/muse/compare/v2.12.0...HEAD
+[unreleased]: https://github.com/Xseba360/muse/compare/v2.12.1...HEAD
 [2.11.1]: https://github.com/museofficial/muse/compare/v2.11.0...v2.11.1
 [2.11.0]: https://github.com/museofficial/muse/compare/v2.10.1...v2.11.0
 [2.10.1]: https://github.com/museofficial/muse/compare/v2.10.0...v2.10.1
@@ -451,4 +453,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.1.1]: https://github.com/codetheweb/muse/releases/tag/v0.1.1
 [0.1.0]: https://github.com/codetheweb/muse/releases/tag/v0.1.0
 
+[2.12.1]: https://github.com/Xseba360/muse/compare/2.12.0-5-ga0e2d1ad49516fde9213afad9e1cd9fac5bdc956...v2.12.1
 [2.12.0]: https://github.com/Xseba360/muse/releases/tag/v2.12.0
