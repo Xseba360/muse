@@ -1,10 +1,10 @@
 import {VoiceChannel, Snowflake} from 'discord.js';
 import {Readable} from 'stream';
 import hasha from 'hasha';
+import ytdl, {videoFormat} from '@distube/ytdl-core';
 import {WriteStream} from 'fs-capacitor';
 import ffmpeg from 'fluent-ffmpeg';
 import shuffle from 'array-shuffle';
-import {Utils} from 'youtubei.js';
 import {
   AudioPlayer,
   AudioPlayerState,
@@ -18,7 +18,6 @@ import {
   VoiceConnectionStatus,
 } from '@discordjs/voice';
 import FileCacheProvider from './file-cache.js';
-import InnertubeProvider from './innertube.js';
 import debug from '../utils/debug.js';
 import {getGuildSettings} from '../utils/get-guild-settings.js';
 import {buildPlayingMessageEmbed} from '../utils/build-embed.js';
@@ -60,6 +59,8 @@ export interface PlayerEvents {
   statusChange: (oldStatus: STATUS, newStatus: STATUS) => void;
 }
 
+type YTDLVideoFormat = videoFormat & {loudnessDb?: number};
+
 export const DEFAULT_VOLUME = 100;
 
 export default class {
@@ -81,20 +82,16 @@ export default class {
 
   private positionInSeconds = 0;
   private readonly fileCache: FileCacheProvider;
-  private readonly innertubeProvider: InnertubeProvider;
   private disconnectTimer: NodeJS.Timeout | null = null;
 
   private readonly channelToSpeakingUsers: Map<string, Set<string>> = new Map();
 
-  constructor(fileCache: FileCacheProvider, innertubeProvider: InnertubeProvider, guildId: string) {
+  constructor(fileCache: FileCacheProvider, guildId: string) {
     this.fileCache = fileCache;
-    this.innertubeProvider = innertubeProvider;
     this.guildId = guildId;
   }
 
   async connect(channel: VoiceChannel): Promise<void> {
-    debug('Connecting to voice channel %s in guild %s', channel.id, channel.guild.id);
-
     // Always get freshest default volume setting value
     const settings = await getGuildSettings(this.guildId);
     const {defaultVolume = DEFAULT_VOLUME} = settings;
@@ -126,12 +123,9 @@ export default class {
     });
 
     // Wait for the connection to be ready (including DAVE handshake)
-    debug('Waiting for voice connection to reach Ready state (DAVE handshake)...');
     try {
       await entersState(this.voiceConnection, VoiceConnectionStatus.Ready, 30_000);
-      debug('Voice connection ready');
     } catch {
-      debug('Voice connection failed to reach Ready state within 30s');
       this.voiceConnection.destroy();
       this.voiceConnection = null;
       throw new Error('Voice connection failed: DAVE encryption handshake timed out. Please try again.');
@@ -215,8 +209,6 @@ export default class {
       throw new Error('Queue empty.');
     }
 
-    debug('Playing: %s (source: %s, url: %s)', currentSong.title, currentSong.source === MediaSource.Youtube ? 'YouTube' : 'HLS', currentSong.url);
-
     // Cancel any pending idle disconnection
     if (this.disconnectTimer) {
       clearInterval(this.disconnectTimer);
@@ -246,28 +238,15 @@ export default class {
         to = currentSong.length + currentSong.offset;
       }
 
-      debug('Getting stream for %s...', currentSong.title);
       const stream = await this.getStream(currentSong, {seek: positionSeconds, to});
-      debug('Got stream, creating audio player');
       this.audioPlayer = createAudioPlayer({
         behaviors: {
           // Needs to be somewhat high for livestreams
           maxMissedFrames: 50,
         },
       });
-
-      this.audioPlayer.on('error', error => {
-        debug('Audio player error: %s', error.message);
-      });
-
-      this.audioPlayer.on('stateChange', (oldState, newState) => {
-        debug('Audio player state change: %s -> %s', oldState.status, newState.status);
-      });
-
       this.voiceConnection.subscribe(this.audioPlayer);
-      debug('Subscribed audio player to voice connection');
       this.playAudioPlayerResource(this.createAudioStream(stream));
-      debug('Audio resource playing');
 
       this.attachListeners();
 
@@ -282,8 +261,6 @@ export default class {
         this.lastSongURL = currentSong.url;
       }
     } catch (error: unknown) {
-      debug('Error during playback of %s: %O', currentSong.title, error);
-
       await this.forward(1);
 
       if ((error as {statusCode: number}).statusCode === 410 && currentSong) {
@@ -536,53 +513,78 @@ export default class {
       return this.createReadStream({url: song.url, cacheKey: song.url});
     }
 
+    let ffmpegInput: string | null;
     const ffmpegInputOptions: string[] = [];
     let shouldCacheVideo = false;
 
-    const cachedPath = await this.fileCache.getPathFor(this.getHashForCache(song.url));
+    let format: YTDLVideoFormat | undefined;
 
-    if (cachedPath) {
-      debug('Using cached file for %s', song.url);
+    ffmpegInput = await this.fileCache.getPathFor(this.getHashForCache(song.url));
 
-      if (options.seek) {
-        ffmpegInputOptions.push('-ss', options.seek.toString());
+    if (!ffmpegInput) {
+      // Not yet cached, must download
+      const info = await ytdl.getInfo(song.url);
+
+      const formats = info.formats as YTDLVideoFormat[];
+
+      const filter = (format: ytdl.videoFormat): boolean => format.codecs === 'opus' && format.container === 'webm' && format.audioSampleRate !== undefined && parseInt(format.audioSampleRate, 10) === 48000;
+
+      format = formats.find(filter);
+
+      const nextBestFormat = (formats: ytdl.videoFormat[]): ytdl.videoFormat | undefined => {
+        if (formats.length < 1) {
+          return undefined;
+        }
+
+        if (formats[0].isLive) {
+          formats = formats.sort((a, b) => (b as unknown as {audioBitrate: number}).audioBitrate - (a as unknown as {audioBitrate: number}).audioBitrate); // Bad typings
+
+          return formats.find(format => [128, 127, 120, 96, 95, 94, 93].includes(parseInt(format.itag as unknown as string, 10))); // Bad typings
+        }
+
+        formats = formats
+          .filter(format => format.averageBitrate)
+          .sort((a, b) => {
+            if (a && b) {
+              return b.averageBitrate! - a.averageBitrate!;
+            }
+
+            return 0;
+          });
+        return formats.find(format => !format.bitrate) ?? formats[0];
+      };
+
+      if (!format) {
+        format = nextBestFormat(info.formats);
+
+        if (!format) {
+          // If still no format is found, throw
+          throw new Error('Can\'t find suitable format.');
+        }
       }
 
-      if (options.to) {
-        ffmpegInputOptions.push('-to', options.to.toString());
-      }
+      debug('Using format', format);
 
-      return this.createReadStream({
-        url: cachedPath,
-        cacheKey: song.url,
-        ffmpegInputOptions,
-      });
+      ffmpegInput = format.url;
+
+      // Don't cache livestreams or long videos
+      const MAX_CACHE_LENGTH_SECONDS = 30 * 60; // 30 minutes
+      shouldCacheVideo
+        = !info.player_response.videoDetails.isLiveContent
+        && parseInt(info.videoDetails.lengthSeconds, 10) < MAX_CACHE_LENGTH_SECONDS
+        && !options.seek;
+
+      debug(shouldCacheVideo ? 'Caching video' : 'Not caching video');
+
+      ffmpegInputOptions.push(...[
+        '-reconnect',
+        '1',
+        '-reconnect_streamed',
+        '1',
+        '-reconnect_delay_max',
+        '5',
+      ]);
     }
-
-    debug('Not cached, fetching from YouTube via yt.download (video ID: %s)', song.url);
-
-    const yt = await this.innertubeProvider.getStreaming();
-    const info = await yt.getBasicInfo(song.url);
-    const isLive = info.basic_info.is_live ?? false;
-    const duration = info.basic_info.duration ?? 0;
-
-    // Don't cache livestreams or long videos
-    const MAX_CACHE_LENGTH_SECONDS = 30 * 60; // 30 minutes
-    shouldCacheVideo = !isLive && duration < MAX_CACHE_LENGTH_SECONDS && !options.seek;
-
-    debug(shouldCacheVideo ? 'Caching video' : 'Not caching video');
-
-    // Use yt.download() which handles auth, headers, and format selection internally
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const downloadStream = await yt.download(song.url, {
-      type: 'audio',
-      quality: 'best',
-      client: 'IOS',
-    });
-
-    debug('Got download stream from yt.download');
-
-    const ytStream = Readable.from(Utils.streamToIterable(downloadStream));
 
     if (options.seek) {
       ffmpegInputOptions.push('-ss', options.seek.toString());
@@ -593,10 +595,11 @@ export default class {
     }
 
     return this.createReadStream({
-      input: ytStream,
+      url: ffmpegInput,
       cacheKey: song.url,
       ffmpegInputOptions,
       cache: shouldCacheVideo,
+      volumeAdjustment: format?.loudnessDb ? `${-format.loudnessDb}dB` : undefined,
     });
   }
 
