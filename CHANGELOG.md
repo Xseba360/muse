@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.12.4] - 2026-03-09
 - Reverted from youtubei.js back to @distube/ytdl-core for YouTube streaming due to issues with youtubei.js
 
 ## [2.12.3] - 2026-03-08
@@ -388,7 +390,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 
-[unreleased]: https://github.com/Xseba360/muse/compare/v2.12.3...HEAD
+[unreleased]: https://github.com/Xseba360/muse/compare/v2.12.4...HEAD
+[2.12.4]: https://github.com/Xseba360/muse/compare/v2.12.3...v2.12.4
 [2.12.3]: https://github.com/Xseba360/muse/compare/v2.12.2...v2.12.3
 [2.12.2]: https://github.com/Xseba360/muse/compare/v2.12.1...v2.12.2
 [2.12.1]: https://github.com/museofficial/muse/compare/v2.11.1...v2.12.1
