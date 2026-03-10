@@ -5,7 +5,7 @@ import {TYPES} from '../types.js';
 import Config from '../services/config.js';
 import {prisma} from '../utils/db.js';
 import {REST} from '@discordjs/rest';
-import type {Setting} from '.prisma/client/default';
+import type {Setting} from '@prisma/client';
 import registerCommandsOnGuild from '../utils/register-commands-on-guild.js';
 
 export async function createGuildSettings(guildId: string): Promise<Setting> {
