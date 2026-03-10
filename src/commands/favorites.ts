@@ -4,7 +4,7 @@ import Command, {AnySlashCommandBuilder} from './index.js';
 import AddQueryToQueue from '../services/add-query-to-queue.js';
 import {TYPES} from '../types.js';
 import {prisma} from '../utils/db.js';
-import type {FavoriteQuery} from '@prisma/client';
+import type {FavoriteQuery} from '../utils/db.js';
 import {Pagination} from 'pagination.djs';
 
 @injectable()

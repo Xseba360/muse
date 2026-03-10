@@ -6,7 +6,7 @@ import Config from './config.js';
 import PQueue from 'p-queue';
 import debug from '../utils/debug.js';
 import {prisma} from '../utils/db.js';
-import type {FileCache} from '@prisma/client';
+import type {FileCache} from '../utils/db.js';
 
 @injectable()
 export default class FileCacheProvider {

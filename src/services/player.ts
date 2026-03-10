@@ -21,7 +21,7 @@ import FileCacheProvider from './file-cache.js';
 import debug from '../utils/debug.js';
 import {getGuildSettings} from '../utils/get-guild-settings.js';
 import {buildPlayingMessageEmbed} from '../utils/build-embed.js';
-import type {Setting} from '@prisma/client';
+import type {Setting} from '../utils/db.js';
 
 export enum MediaSource {
   Youtube,
