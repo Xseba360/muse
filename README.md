@@ -80,7 +80,7 @@ services:
 ### Node.js
 
 **Prerequisites**:
-* Node.js (18.17.0 or latest 18.xx.xx is required and latest 18.x.x LTS is recommended) (Version 18 due to opus dependency)
+* Node.js (22.22.0 or later is required and latest 22.x.x LTS is recommended)
 * ffmpeg (4.1 or later)
 * **Corepack enabled** (for Yarn Berry v4+)
 

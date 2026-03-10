@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Bumped minimum Node.js version from 18.17.0 to 22.22.0
+- Upgraded TypeScript from 4.x to 5.x
+- Upgraded Prisma to v7 and updated schema format
+- Migrated ESLint v9
+- Updated Discord.js ecosystem to latest versions
+- Relaxed ESLint rules and formatted code ahead of xo migration
+- Upgraded to Yarn Berry v4.x (Corepack required)
+- Updated inversify to v7.11.0
+- Unified command imports and updated slashCommand type
+- Updated Prisma imports and types across multiple files
+- Fixed yarn peer dependency resolution errors
+- Updated discord-api-types to version 0.38.42
+- Updated most dependencies to latest versions
+- Updated husky to v9
+
 ## [2.12.4] - 2026-03-09
 - Reverted from youtubei.js back to @distube/ytdl-core for YouTube streaming due to issues with youtubei.js
 
