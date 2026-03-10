@@ -82,6 +82,9 @@ services:
 **Prerequisites**:
 * Node.js (18.17.0 or latest 18.xx.xx is required and latest 18.x.x LTS is recommended) (Version 18 due to opus dependency)
 * ffmpeg (4.1 or later)
+* **Corepack enabled** (for Yarn Berry v4+)
+
+> 💡 **Note**: Muse uses [Yarn Berry](https://yarnpkg.com/) (v4.x). Ensure Corepack is enabled by running `corepack enable` before using Yarn commands. This is required for the project's package manager to work correctly.
 
 1. `git clone https://github.com/Xseba360/muse.git && cd muse`
 2. Copy `.env.example` to `.env` and populate with values

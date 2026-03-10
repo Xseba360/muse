@@ -45,7 +45,9 @@ build/Release
 # Dependency directories
 node_modules/
 jspm_packages/
-
+# Yarn Berry (v4+)
+.yarn/
+install-state.gz
 # TypeScript v1 declaration files
 typings/
 
