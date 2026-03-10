@@ -1,6 +1,6 @@
 import {VoiceChannel, Snowflake} from 'discord.js';
 import {Readable} from 'stream';
-import hasha from 'hasha';
+import {hashSync} from 'hasha';
 import ytdl, {videoFormat} from '@distube/ytdl-core';
 import {WriteStream} from 'fs-capacitor';
 import ffmpeg from 'fluent-ffmpeg';
@@ -497,7 +497,7 @@ export default class {
   }
 
   private getHashForCache(url: string): string {
-    return hasha(url);
+    return hashSync(url);
   }
 
   private async getStream(song: QueuedSong, options: {seek?: number; to?: number} = {}): Promise<Readable> {
