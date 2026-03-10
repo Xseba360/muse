@@ -30,6 +30,7 @@ RUN apt-get update \
 
 COPY package.json .
 COPY yarn.lock .
+COPY .yarnrc.yml .
 
 RUN corepack enable
 
