@@ -1,7 +1,6 @@
-import {SlashCommandBuilder} from '@discordjs/builders';
-import {APIEmbedField, AutocompleteInteraction, ChatInputCommandInteraction} from 'discord.js';
+import {APIEmbedField, AutocompleteInteraction, ChatInputCommandInteraction, SlashCommandBuilder} from 'discord.js';
 import {inject, injectable} from 'inversify';
-import Command from './index.js';
+import Command, {AnySlashCommandBuilder} from './index.js';
 import AddQueryToQueue from '../services/add-query-to-queue.js';
 import {TYPES} from '../types.js';
 import {prisma} from '../utils/db.js';
@@ -9,7 +8,7 @@ import {Pagination} from 'pagination.djs';
 
 @injectable()
 export default class implements Command {
-  public readonly slashCommand = new SlashCommandBuilder()
+  public readonly slashCommand: AnySlashCommandBuilder = new SlashCommandBuilder()
     .setName('favorites')
     .setDescription('add a song to your favorites')
     .addSubcommand(subcommand => subcommand

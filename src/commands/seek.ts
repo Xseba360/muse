@@ -1,15 +1,14 @@
-import {ChatInputCommandInteraction} from 'discord.js';
+import {ChatInputCommandInteraction, SlashCommandBuilder} from 'discord.js';
 import {TYPES} from '../types.js';
 import {inject, injectable} from 'inversify';
 import PlayerManager from '../managers/player.js';
-import Command from './index.js';
+import Command, {AnySlashCommandBuilder} from './index.js';
 import {parseTime, prettyTime} from '../utils/time.js';
-import {SlashCommandBuilder} from '@discordjs/builders';
 import durationStringToSeconds from '../utils/duration-string-to-seconds.js';
 
 @injectable()
 export default class implements Command {
-  public readonly slashCommand = new SlashCommandBuilder()
+  public readonly slashCommand: AnySlashCommandBuilder = new SlashCommandBuilder()
     .setName('seek')
     .setDescription('seek to a position from beginning of song')
     .addStringOption(option =>

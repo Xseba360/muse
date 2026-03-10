@@ -1,16 +1,15 @@
-import {SlashCommandBuilder} from '@discordjs/builders';
 import {inject, injectable} from 'inversify';
-import Command from './index.js';
+import Command, {AnySlashCommandBuilder} from './index.js';
 import {TYPES} from '../types.js';
 import PlayerManager from '../managers/player.js';
 import {STATUS} from '../services/player.js';
 import {buildPlayingMessageEmbed} from '../utils/build-embed.js';
 import {getMemberVoiceChannel, getMostPopularVoiceChannel} from '../utils/channels.js';
-import {ChatInputCommandInteraction, GuildMember} from 'discord.js';
+import {ChatInputCommandInteraction, GuildMember, SlashCommandBuilder} from 'discord.js';
 
 @injectable()
 export default class implements Command {
-  public readonly slashCommand = new SlashCommandBuilder()
+  public readonly slashCommand: AnySlashCommandBuilder = new SlashCommandBuilder()
     .setName('resume')
     .setDescription('resume playback');
 

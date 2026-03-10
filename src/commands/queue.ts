@@ -1,15 +1,14 @@
-import {ChatInputCommandInteraction} from 'discord.js';
-import {SlashCommandBuilder} from '@discordjs/builders';
+import {ChatInputCommandInteraction, SlashCommandBuilder} from 'discord.js';
 import {inject, injectable} from 'inversify';
 import {TYPES} from '../types.js';
 import PlayerManager from '../managers/player.js';
-import Command from './index.js';
+import Command, {AnySlashCommandBuilder} from './index.js';
 import {buildQueueEmbed} from '../utils/build-embed.js';
 import {getGuildSettings} from '../utils/get-guild-settings.js';
 
 @injectable()
 export default class implements Command {
-  public readonly slashCommand = new SlashCommandBuilder()
+  public readonly slashCommand: AnySlashCommandBuilder = new SlashCommandBuilder()
     .setName('queue')
     .setDescription('show the current queue')
     .addIntegerOption(option => option

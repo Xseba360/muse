@@ -2,12 +2,12 @@ import {SlashCommandBuilder} from '@discordjs/builders';
 import {ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits} from 'discord.js';
 import {injectable} from 'inversify';
 import {prisma} from '../utils/db.js';
-import Command from './index.js';
+import Command, {AnySlashCommandBuilder} from './index.js';
 import {getGuildSettings} from '../utils/get-guild-settings.js';
 
 @injectable()
 export default class implements Command {
-  public readonly slashCommand = new SlashCommandBuilder()
+  public readonly slashCommand: AnySlashCommandBuilder = new SlashCommandBuilder()
     .setName('config')
     .setDescription('configure bot settings')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild.toString())

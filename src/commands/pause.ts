@@ -1,14 +1,14 @@
-import {ChatInputCommandInteraction} from 'discord.js';
-import {SlashCommandBuilder} from '@discordjs/builders';
+import {ChatInputCommandInteraction, SlashCommandBuilder} from 'discord.js';
+import {} from '@discordjs/builders';
 import {TYPES} from '../types.js';
 import {inject, injectable} from 'inversify';
 import PlayerManager from '../managers/player.js';
 import {STATUS} from '../services/player.js';
-import Command from './index.js';
+import Command, {AnySlashCommandBuilder} from './index.js';
 
 @injectable()
 export default class implements Command {
-  public readonly slashCommand = new SlashCommandBuilder()
+  public readonly slashCommand: AnySlashCommandBuilder = new SlashCommandBuilder()
     .setName('pause')
     .setDescription('pause the current song');
 
