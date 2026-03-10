@@ -31,6 +31,8 @@ RUN apt-get update \
 COPY package.json .
 COPY yarn.lock .
 
+RUN corepack enable
+
 RUN yarn install --prod
 RUN cp -R node_modules /usr/app/prod_node_modules
 
