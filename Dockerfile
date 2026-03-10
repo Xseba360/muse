@@ -33,7 +33,7 @@ COPY yarn.lock .
 
 RUN corepack enable
 
-RUN yarn install --prod
+RUN yarn workspaces focus --all --production
 RUN cp -R node_modules /usr/app/prod_node_modules
 
 RUN yarn install
