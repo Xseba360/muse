@@ -9,7 +9,7 @@ import Config from './config.js';
 import KeyValueCacheProvider from './key-value-cache.js';
 import {ONE_HOUR_IN_SECONDS, ONE_MINUTE_IN_SECONDS} from '../utils/constants.js';
 import {parseTime} from '../utils/time.js';
-import getYouTubeID from 'get-youtube-id';
+import getVideoId from 'get-video-id';
 
 interface VideoDetailsResponse {
   id: string;
@@ -108,7 +108,12 @@ export default class {
   }
 
   async getVideo(url: string, shouldSplitChapters: boolean): Promise<SongMetadata[]> {
-    const result = await this.getVideosByID([String(getYouTubeID(url))]);
+    const videoId = getVideoId(url);
+    if (!videoId || videoId.service !== 'youtube' || !videoId.id) {
+      throw new Error('Invalid YouTube URL');
+    }
+
+    const result = await this.getVideosByID([String(videoId.id)]);
     const video = result.at(0);
 
     if (!video) {
