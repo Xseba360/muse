@@ -17,7 +17,7 @@ export default class implements Command {
     .addIntegerOption(option =>
       option.setName('range')
         .setDescription('number of songs to remove [default: 1]')
-        .setRequired(false)) as any;
+        .setRequired(false));
 
   private readonly playerManager: PlayerManager;
 
