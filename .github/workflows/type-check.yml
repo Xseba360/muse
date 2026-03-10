@@ -18,5 +18,7 @@ jobs:
           run: yarn install
         - name: Generate Prisma client
           run: yarn prisma generate
+          env:
+            DATABASE_URL: "file:./dev.db"
         - name: Run type check
           run: yarn tsc
