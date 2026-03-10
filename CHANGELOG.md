@@ -22,6 +22,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated most dependencies to latest versions
 - Updated husky to v9
 
+### Fixed
+- Updated `module` and `moduleResolution` settings in tsconfig for better ESM compatibility.
+- Updated import statement and usage of `make-dir` for consistency.
+- Improved TypeScript error handling for pagination interaction casting.
+- Replaced `get-youtube-id` with `get-video-id` for improved URL validation and ESM compatibility.
+- Replaced `hasha` with `hashSync` due to module update.
+- Removed unnecessary type assertion in remove command options.
+- Handled potential null value from parse function.
+
+### Chore
+- Updated Prisma import paths to use `@prisma/client` again.
+- Enabled Corepack in workflows and Dockerfile.
+
 ## [2.12.4] - 2026-03-09
 - Reverted from youtubei.js back to @distube/ytdl-core for YouTube streaming due to issues with youtubei.js
 
