@@ -44,7 +44,7 @@ FROM dependencies AS builder
 COPY . .
 
 # Run tsc build
-RUN yarn prisma generate
+RUN DATABASE_URL="file:./dev.db" yarn prisma generate
 RUN yarn build
 
 # Only keep what's necessary to run
@@ -54,7 +54,6 @@ WORKDIR /usr/app
 
 COPY --from=builder /usr/app/dist ./dist
 COPY --from=dependencies /usr/app/prod_node_modules node_modules
-COPY --from=builder /usr/app/node_modules/.prisma/client ./node_modules/.prisma/client
 
 COPY . .
 
