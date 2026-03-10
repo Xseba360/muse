@@ -141,10 +141,12 @@ export default class AddQueryToQueue {
   }
 
   private async skipNonMusicSegments(song: SongMetadata) {
-    if (!this.sponsorBlock
-          || (this.sponsorBlockDisabledUntil && new Date() < this.sponsorBlockDisabledUntil)
-          || song.source !== MediaSource.Youtube
-          || !song.url) {
+    if (
+      !this.sponsorBlock ||
+      this.sponsorBlockDisabledUntil && new Date() < this.sponsorBlockDisabledUntil ||
+      song.source !== MediaSource.Youtube ||
+      !song.url
+    ) {
       return song;
     }
 

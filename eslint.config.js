@@ -19,12 +19,17 @@ export default [
 		},
 		rules: {
 			'new-cap': 'off',
+			'no-unused-vars': 'off',
 			'@typescript-eslint/no-unused-vars': [
 				'error',
 				{
 					argsIgnorePattern: '^_',
-					varsIgnorePattern: '^_',
-					destructuredArrayIgnorePattern: '^_',
+					varsIgnorePattern: '^_|^unused$',
+					destructuredArrayIgnorePattern: '^_|^unused$',
+					ignoreRestSiblings: true,
+					// Allow catch clause parameters that are intentionally unused
+					caughtErrors: 'all',
+					caughtErrorsIgnorePattern: '^_',
 				},
 			],
 			'@typescript-eslint/prefer-readonly-parameter-types': 'off',
@@ -37,6 +42,16 @@ export default [
 			'preserve-caught-error': 'off',
 			'logical-assignment-operators': 'off',
 			'@stylistic/max-len': 'off',
+			// Allow void returns for Discord.js event handlers
+			'no-void': ['error', { allowAsStatement: true }],
+			// Allow NodeJS namespace (used in type definitions)
+			'no-undef': 'off',
+			// Disable require-unicode-regexp as it's not needed for most regex patterns
+			'require-unicode-regexp': 'off',
+			// Disable operator-linebreak to allow flexible line breaks
+			'@stylistic/operator-linebreak': 'off',
+			// Allow mixed operators with proper parentheses
+			'@stylistic/no-mixed-operators': 'off',
 		},
 	},
 ];
