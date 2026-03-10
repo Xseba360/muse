@@ -154,6 +154,7 @@ export default class implements Command {
     }
 
     await new Pagination(
+      // @ts-expect-error
       interaction as ChatInputCommandInteraction<'cached'>,
       {ephemeral: true, limit: 25})
       .setFields(fields)
