@@ -1,6 +1,6 @@
 import xo from 'eslint-config-xo';
 import tsespree from '@typescript-eslint/parser';
-import pluginImport from 'eslint-plugin-import';
+import pluginImport from 'eslint-plugin-import-x';
 import pluginTypeScript from '@typescript-eslint/eslint-plugin';
 
 export default [
