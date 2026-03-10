@@ -73,7 +73,7 @@
     "array-shuffle": "^3.0.0",
     "debug": "^4.3.3",
     "delay": "^5.0.0",
-    "discord-api-types": "^0.38.41",
+    "discord-api-types": "^0.38.42",
     "discord.js": "14.25.1",
     "dotenv": "^16.4.5",
     "execa": "^6.1.0",
