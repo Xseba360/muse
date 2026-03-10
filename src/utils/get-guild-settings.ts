@@ -1,4 +1,4 @@
-import {Setting} from '@prisma/client';
+import type {Setting} from '.prisma/client/default';
 import {prisma} from './db.js';
 import {createGuildSettings} from '../events/guild-create.js';
 
